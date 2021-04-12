@@ -1,45 +1,78 @@
 <?php
 
-    include('config/db-connect.php');
+    require('config/db-connect.php');
 
-    $response = [];
+    $delivery = new Delivery();
 
-    try {
+    if ( isset($_POST['testClass']) ) {
+        $jsonData = json_decode( $_POST['testClass'] );
+        echo $delivery->testClass( $jsonData );
+    }
 
-        $cnn = new ConexionBD();
-        $con = $cnn->conectaBD();
-
-    } catch (Exception $e) {
+    # Clases y metodos
+    class Delivery {
         
-        switch ($e->getCode()){
+        private $id_user, $role, $mail, $db, $lastInsertId;
+        public $objCnn;
 
-            case 2002:
-                $response['success'] = 0;
-                $response['message'] =  'El servidor no responde, verifique el estado del servidor y puerto MySQL';
-            break;
+        public function __construct() {
             
-            case 1049:
-                $response['success'] = 0;
-                $response['message'] =  'La base de datos no existe, verifique el estado de la base de datos en el servidor MySQL';
-            break;
-            
-            case 1045:
-                $response['success'] = 0;
-                $response['message'] =  'El usuario o la clave de acceso son incorrectos, verifique el estado del usuario de la base de datos en el servidor MySQL';
-            break;
-            
-            case 23000:
-                $response['success'] = 0;
-                $response['message'] =  'La clave principal ya existe, intente de nuevo con otros datos';
-            break;
-            
-            default:
-                $response['success'] = 0;
-                $response['message'] = 'Error desconocido, verifique con el administrador del servidor MySQL o del sistema: ' . $e->getMessage();
+            $this->objCnn = new ConexionBD();
+            $this->db = $this->objCnn->conectaBD();
+
         }
-        
-        echo json_encode($response);
+
+        #Helpers
+        const ERRORS = [
+            'session' => ["error" => 'Session not active', "fix" => 'User must be log-out and log-in again'],
+        ];
+
+        // TODO: Crear metodo para enviar error por correo electronico
+        private function sendNotifyError($error) {
+            var_dump($error);
+        }
+
+        private function sessionStatus() {
+            return session_status() === PHP_SESSION_ACTIVE ? true : false;
+        }
+
+        public function startTransaction() {
+            $this->db->beginTransaction();
+        }
+
+        public function insertTransaction($sql, $data) {
+            $sttmt = $this->db->prepare($sql);
+            $sttmt->execute($data);
+            $this->lastInsertId = $this->db->lastInsertId();
+        }
+
+        public function updateTransaction($sql, $data) {
+            $sttmt = $this->db->prepare($sql);
+            $sttmt->execute($data);
+        }
+
+        public function submitTransaction() {
+
+            try {
+                $this->db->commit();
+            } catch(PDOException $e) {
+
+                $this->db->rollBack();
+                $this->sendNotifyError($e);
+                echo 'Error en transaccion: ' . $e->getMessage();
+                return false;
+
+            }
+
+            return true;
+
+        }
+
+        public function testClass($jsonData) {
+            var_dump($jsonData);
+        }
 
     }
+    
 
 ?>

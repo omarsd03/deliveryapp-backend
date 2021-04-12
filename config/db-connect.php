@@ -34,7 +34,6 @@
 
             try {
                 $this->connection = new PDO($this->dsnhost, $this->user, $this->password, $this->options);
-                echo 'Conexion Establecida :D';
                 return $this->connection;
             } catch (Exception $e) {
                 throw $e;
