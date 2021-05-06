@@ -26,17 +26,17 @@
 
         }
 
-        const ERRORS = [
-            'mail_duplicated' => ["success" => 0, "error" => 'Mail existing', "fix" => 'Please enter another email'],
-            'username_duplicated' => ["success" => 0, "error" => 'Username existing', "fix" => 'Please enter another username'],
-            'signup_error' => ["success" => 0, "error" => 'Fail to user sign up', "fix" => 'Please contact support'],
-            'not_registred' => ["success" => 0, "error" => 'User not registered', "fix" => 'Please register in the signup page'],
-            'incorrect_credencials' => ["success" => 0, "error" => 'Incorrect credencials', "fix" => 'Please verify your credentials'],
-        ];
+        // const ERRORS = [
+        //     'mail_duplicated' => ["success" => 0, "error" => 'Mail existing', "fix" => 'Please enter another email'],
+        //     'username_duplicated' => ["success" => 0, "error" => 'Username existing', "fix" => 'Please enter another username'],
+        //     'signup_error' => ["success" => 0, "error" => 'Fail to user sign up', "fix" => 'Please contact support'],
+        //     'not_registred' => ["success" => 0, "error" => 'User not registered', "fix" => 'Please register in the signup page'],
+        //     'incorrect_credencials' => ["success" => 0, "error" => 'Incorrect credencials', "fix" => 'Please verify your credentials'],
+        // ];
 
-        const SUCCESS = [
-            'signup' => ['success' => 1, "msg" => 'Register successfully!',],
-        ];
+        // const SUCCESS = [
+        //     'signup' => ['success' => 1, "msg" => 'Register successfully!',],
+        // ];
 
         // TODO: Crear metodo para enviar error por correo electronico
         private function sendNotifyError($error) {

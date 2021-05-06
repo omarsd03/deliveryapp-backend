@@ -1,0 +1,13 @@
+{
+    "name": "o0930847/deliveryapp-backend",
+    "description": "Este es el backend para la aplicacion DeliveryApp",
+    "authors": [
+        {
+            "name": "Omar Salgado",
+            "email": "Omar.Salgado@saint-gobain.com"
+        }
+    ],
+    "require": {
+        "firebase/php-jwt": "^5.2"
+    }
+}
