@@ -255,7 +255,7 @@
 
             if ($role == 'Requester') {
                 
-                $sttmt = $this->db->prepare("SELECT * FROM users WHERE role = ? AND available = ?");
+                $sttmt = $this->db->prepare("SELECT * FROM d_delivery_users WHERE role = ? AND available = ?");
                 $sttmt->execute([ 'Deliver', 1 ]);
                 $resSt = $sttmt->fetchAll();
 
@@ -284,7 +284,7 @@
                     $usrNowName = $usrNext->first_name . " " . $usrNext->last_name;
                     $usrAuth = $cadenaAuth . $usrNow . "/";
 
-                    $query = "INSERT INTO progress_icrf (folio, approval, role, stage, status) VALUES (?, ?, ?, ?, ?)";
+                    $query = "INSERT INTO progress_delivery (folio, approval, role, stage, status) VALUES (?, ?, ?, ?, ?)";
                     $data = [$folio, $usrNow, $usrNowRole, $stage, 'Pendiente'];
 
                     $this->insertTransaction($query, $data);
@@ -319,8 +319,10 @@
                 $auth->Check($token);
 
                 $user = $auth->GetData($token);
+
+                $this->startTransaction();
                 
-                $query = "INSERT INTO d_delivery_general (g_domicilio, g_colonia, g_municipio, g_estado, g_comentarios, g_usr_solicitante, g_stage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                $query = "INSERT INTO d_delivery_general (g_domicilio, g_colonia, g_municipio, g_estado, g_comentarios, g_usr_solicitante, g_stage) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $data = [ $jsonData->domicilio, $jsonData->colonia, $jsonData->municipio, $jsonData->estado, $jsonData->comentarios, $user->id_user, 1 ];
 
                 $this->insertTransaction($query, $data);
@@ -331,16 +333,23 @@
 
                 $folio = $resSt[0]->g_folio;
 
-                foreach ($jsonData->items as $item) {
+                foreach ($jsonData->productos as $item) {
                     
-                    $query = "INSERT INTO d_delivery_items (i_folio, i_item, i_descripcion) VALUES (?, ?, ?, ?)";
-                    $data = [ $folio, $item, $descripcion ];
+                    $query = "INSERT INTO d_delivery_items (i_folio, i_item, i_descripcion) VALUES (?, ?, ?)";
+                    $data = [ $folio, $item->producto, $item->descripcion ];
 
                     $this->insertTransaction($query, $data);
 
                 }
 
                 $result = $this->administrarFlujo($folio, $user->id_user, $user->role, 1, 'En Proceso', $user->id_user);
+
+                if ($result) {
+
+                    $response = ['success' => 1, "msg" => 'Pedido creado correctamente', "folio" => $folio];
+                    return json_encode($response);
+
+                }
 
             } catch (Exception $e) {
 
