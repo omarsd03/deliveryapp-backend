@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 12-04-2021 a las 03:33:15
+-- Tiempo de generación: 10-05-2021 a las 16:35:49
 -- Versión del servidor: 10.4.17-MariaDB
 -- Versión de PHP: 8.0.0
 
@@ -75,6 +75,7 @@ CREATE TABLE `d_delivery_general` (
   `g_name_usr_now` varchar(255) NOT NULL,
   `g_stage` int(11) NOT NULL,
   `g_status` varchar(50) NOT NULL,
+  `g_stand_by` int(11) DEFAULT NULL,
   `g_created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `g_updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -83,8 +84,8 @@ CREATE TABLE `d_delivery_general` (
 -- Volcado de datos para la tabla `d_delivery_general`
 --
 
-INSERT INTO `d_delivery_general` (`id_g_delivery`, `g_folio`, `g_domicilio`, `g_colonia`, `g_municipio`, `g_estado`, `g_sub_total`, `g_costo_servicio`, `g_total`, `g_comentarios`, `g_usr_solicitante`, `g_usr_now`, `g_name_usr_now`, `g_stage`, `g_status`, `g_created_at`, `g_updated_at`) VALUES
-(1, 'DLV-00000001', 'Avenida Constancio Farfan #62', 'Tenextepango', 'Ayala', 'Morelos', '0.00', '0.00', '0.00', 'Favor de atender mi pedido ya que es urgente', 1, 2, 'Doricely', 2, 'En Proceso', '2021-04-10 20:22:30', '2021-04-10 20:22:30');
+INSERT INTO `d_delivery_general` (`id_g_delivery`, `g_folio`, `g_domicilio`, `g_colonia`, `g_municipio`, `g_estado`, `g_sub_total`, `g_costo_servicio`, `g_total`, `g_comentarios`, `g_usr_solicitante`, `g_usr_now`, `g_name_usr_now`, `g_stage`, `g_status`, `g_stand_by`, `g_created_at`, `g_updated_at`) VALUES
+(1, 'DLV-00000001', 'Avenida Constancio Farfan #62', 'Tenextepango', 'Ayala', 'Morelos', '0.00', '0.00', '0.00', 'Favor de atender mi pedido ya que es urgente', 1, 2, 'Doricely', 2, 'En Proceso', NULL, '2021-04-10 20:22:30', '2021-04-10 20:22:30');
 
 --
 -- Disparadores `d_delivery_general`
@@ -146,7 +147,9 @@ CREATE TABLE `d_delivery_users` (
   `municipio` varchar(255) NOT NULL,
   `estado` varchar(100) NOT NULL,
   `mail` varchar(255) NOT NULL,
+  `username` varchar(30) NOT NULL,
   `pwd` varchar(255) NOT NULL,
+  `available` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -155,8 +158,11 @@ CREATE TABLE `d_delivery_users` (
 -- Volcado de datos para la tabla `d_delivery_users`
 --
 
-INSERT INTO `d_delivery_users` (`id_user`, `first_name`, `last_name`, `role`, `address`, `colonia`, `municipio`, `estado`, `mail`, `pwd`, `created_at`, `updated_at`) VALUES
-(1, 'Omar', 'Salgado Diaz', 'Requester', 'Av. Constancio Farfan #62', 'Tenextepango', 'Ayala', 'Morelos', 'salgadodiazomar96@gmail.com', 'TasterChoice1', '2021-04-09 04:46:24', '2021-04-10 19:40:20');
+INSERT INTO `d_delivery_users` (`id_user`, `first_name`, `last_name`, `role`, `address`, `colonia`, `municipio`, `estado`, `mail`, `username`, `pwd`, `available`, `created_at`, `updated_at`) VALUES
+(1, 'Omar', 'Salgado', 'Requester', 'Av Revolucion S/N', 'Tenextepango', 'Ayala', 'Morelos', 'test@test.com', 'omarsd03', 'abc1234..', NULL, '2021-04-20 22:14:44', '2021-05-10 13:35:10'),
+(2, 'Francely', 'Anzures', 'Requester', 'Av Revolucion S/N', 'Tenextepango', 'Ayala', 'Morelos', 'test1@test.com', 'tester1', 'abc1234..', NULL, '2021-04-20 22:19:16', '2021-05-10 13:35:25'),
+(3, 'Doricely', 'Any', 'Deliver', 'Av. Principal #1', 'El Salitre', 'Ayala', 'Morelos', 'doricely@test.com', 'dori', 'abc1234..', 1, '2021-05-10 13:41:52', '2021-05-10 13:41:52'),
+(4, 'Jairo', 'Tlaseca', 'Deliver', 'Av. Del Trabajo S/N', 'Leopoldo Heredia', 'Ayala', 'Morelos', 'jairo.tlaseca@test.com', 'jairo_tlapi', 'abc1234..', 1, '2021-05-10 13:41:52', '2021-05-10 13:41:52');
 
 -- --------------------------------------------------------
 
@@ -225,7 +231,7 @@ ALTER TABLE `d_delivery_items`
 -- AUTO_INCREMENT de la tabla `d_delivery_users`
 --
 ALTER TABLE `d_delivery_users`
-  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `progress_delivery`

@@ -8,13 +8,6 @@
     $delivery = new Delivery();
     $auth = new Auth();
 
-    // $data = ['nombre' => 'Omar', 'password' => 'abc123..'];
-    // $token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MjAxNjU4NTMsImF1ZCI6ImNjNDFhNTlmYzE2NTc2ZTM5N2FjZDVlMWI5NjgzNzBiODUyNmQ2ZTciLCJkYXRhIjp7Im5vbWJyZSI6Ik9tYXIiLCJwYXNzd29yZCI6ImFiYzEyMy4uIn19.Njs-tDDE2Tlya7lUny00VtVXvIwj_2OKrERhfSBipR8";
-
-    // var_dump( $auth->SignIn( $data ) );
-    // var_dump( $auth->Check( $token ) );
-    // var_dump( $auth->GetData( $token ) );
-
     # Iniciar sesion / Nuevo Registro
     if ( isset( $_POST['signUp'] ) ) {
         $jsonData = json_decode( $_POST['signUp'] );
@@ -58,10 +51,10 @@
             'signup' => ['success' => 1, "msg" => 'Register successfully!',],
         ];
 
-        // TODO: Crear metodo para enviar error por correo electronico
+        // TODO: Establecer el puerto SMTP y el gestor de Google para enviar los mails
         private function sendNotifyError($error) {
             
-            // ini_set('SMTP', 'smtp.mail.saint-gobain.net');
+            // ini_set('SMTP', '');
             // ini_set('port', 25);
             $headers = "Content-Type: text/html; charset=UTF-8\n";
             $headers .= "From: salgadodiazomar96@gmail.com";
@@ -90,8 +83,52 @@
 
         }
 
-        private function sessionStatus() {
-            return session_status() === PHP_SESSION_ACTIVE ? true : false;
+        # Comentada ya que se utilizaran tokens para el manejo de sesion
+        // private function sessionStatus() {
+        //     return session_status() === PHP_SESSION_ACTIVE ? true : false;
+        // }
+
+        # Get header Authorization
+        private function getAuthorizationHeader() {
+
+            $headers = null;
+
+            if (isset($_SERVER['Authorization'])) {
+                $headers = trim($_SERVER["Authorization"]);
+            } else if (isset($_SERVER['HTTP_AUTHORIZATION'])) { //Nginx or fast CGI
+                $headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
+            } elseif (function_exists('apache_request_headers')) {
+
+                $requestHeaders = apache_request_headers();
+                // Server-side fix for bug in old Android versions (a nice side-effect of this fix means we don't care about capitalization for Authorization)
+                $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+                //print_r($requestHeaders);
+                if (isset($requestHeaders['Authorization'])) {
+                    $headers = trim($requestHeaders['Authorization']);
+                }
+
+            }
+
+            return $headers;
+
+        }
+        
+        # Get access token from header
+        private function getBearerToken() {
+
+            $headers = $this->getAuthorizationHeader();
+
+            // HEADER: Get the access token from the header
+            if (!empty($headers)) {
+
+                if (preg_match('/Bearer\s(\S+)/', $headers, $matches)) {
+                    return $matches[1];
+                }
+
+            }
+
+            return null;
+
         }
 
         public function startTransaction() {
@@ -126,6 +163,7 @@
 
         }
 
+        # Registro
         public function signUp($jsonData) {
             
             try {
@@ -168,6 +206,7 @@
 
         }
 
+        # Inicio de sesion
         public function signIn($jsonData) {
             
             try {
@@ -209,32 +248,107 @@
 
         }
 
-        public function testClass($jsonData) {
+        # Funcion para administrar el flujo de pedidos
+        public function administrarFlujo($folio, $idUsr, $role, $stage, $status, $cadenaAuth = '', $comentarios = null) {
+        
+            $usrNow = null; $usrNowName = null; $usrNowRole = null; $usrAuth = null; $usrNext = null; $stage++;
 
-            try {
-
-                $jsonResp = new stdClass();
+            if ($role == 'Requester') {
                 
-                $sttmt = $this->db->prepare('SELECT * FROM d_delivery_test WHERE id = ?');
-                $sttmt->execute();
-                $resSt = $sttmt->fetchAll(PDO::FETCH_OBJ);
+                $sttmt = $this->db->prepare("SELECT * FROM users WHERE role = ? AND available = ?");
+                $sttmt->execute([ 'Deliver', 1 ]);
+                $resSt = $sttmt->fetchAll();
 
-                $jsonResp = $resSt;
+                if ($sttmt->rowCount() > 1 || $sttmt->rowCount() == 0) {
 
-                return json_encode($jsonResp);
+                    $usrNow = 0;
+                    $usrNowName = 'Delivers';
 
-            } catch (Exception $e) {
-                echo 'Error ' . $e->getMessage();
-                $this->sendNotifyError($e);
+                    $query = "UPDATE d_delivery_general SET g_usr_now = ?, g_name_usr_now = ?, g_stand_by = ? WHERE g_folio = ?";
+                    $data = [$usrNow, $usrNowName, 1, $folio];
+
+                    $this->updateTransaction($query, $data);
+
+                    $result = $this->submitTransaction();
+
+                    // Enviar Notificacion de espera
+                    // if ($result) {
+
+                    // }
+                    
+                } elseif ($sttmt->rowCount() == 1) {
+                    
+                    $usrNext = $resSt[0];
+                    $usrNow = $usrNext->id_user;
+                    $usrNowRole = $usrNext->role;
+                    $usrNowName = $usrNext->first_name . " " . $usrNext->last_name;
+                    $usrAuth = $cadenaAuth . $usrNow . "/";
+
+                    $query = "INSERT INTO progress_icrf (folio, approval, role, stage, status) VALUES (?, ?, ?, ?, ?)";
+                    $data = [$folio, $usrNow, $usrNowRole, $stage, 'Pendiente'];
+
+                    $this->insertTransaction($query, $data);
+
+                    $query = "UPDATE d_delivery_general SET g_usr_now = ?, g_name_usr_now = ?, g_stage = ? WHERE g_folio = ?";
+                    $data = [$usrNow, $usrNowName, $stage, $folio];
+
+                    $this->updateTransaction($query, $data);
+
+                    $result = $this->submitTransaction();
+
+                    // Enviar Notificacion
+                    // if ($result) {
+
+                    // }
+
+                }
+
             }
-            
+
+            return $result;
+
         }
 
         public function crearPedido($jsonData) {
+
+            try {
+
+                $auth = new Auth();
+
+                $token = $this->getBearerToken();
+                $auth->Check($token);
+
+                $user = $auth->GetData($token);
+                
+                $query = "INSERT INTO d_delivery_general (g_domicilio, g_colonia, g_municipio, g_estado, g_comentarios, g_usr_solicitante, g_stage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                $data = [ $jsonData->domicilio, $jsonData->colonia, $jsonData->municipio, $jsonData->estado, $jsonData->comentarios, $user->id_user, 1 ];
+
+                $this->insertTransaction($query, $data);
+
+                $sttmt = $this->db->prepare("SELECT * FROM d_delivery_general WHERE id_g_delivery = ?");
+                $sttmt->execute([ $this->lastInsertId ]);
+                $resSt = $sttmt->fetchAll();
+
+                $folio = $resSt[0]->g_folio;
+
+                foreach ($jsonData->items as $item) {
+                    
+                    $query = "INSERT INTO d_delivery_items (i_folio, i_item, i_descripcion) VALUES (?, ?, ?, ?)";
+                    $data = [ $folio, $item, $descripcion ];
+
+                    $this->insertTransaction($query, $data);
+
+                }
+
+                $result = $this->administrarFlujo($folio, $user->id_user, $user->role, 1, 'En Proceso', $user->id_user);
+
+            } catch (Exception $e) {
+
+                // $this->sendNotifyError($e);
+                echo 'Error en el metodo: ' . $e->getMessage();
+
+            }
             
-            var_dump($jsonData);
-            $query = "INSERT INTO `d_delivery_general`(g_domicilio, g_colonia, g_municipio, g_estado, g_comentarios, g_usr_solicitante, g_usr_now, g_name_usr_now, g_stage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            $data = [];
 
         }
 
